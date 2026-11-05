@@ -1,0 +1,78 @@
+rules_version = '2';
+
+// Security model
+//  - Educational content (lessons, challenges) is world-readable, written only
+//    by admins via the Admin SDK (Cloud Functions), never by clients.
+//  - Everything owned by a user is readable/writable only by that user.
+//  - A saved network may be opted in to link-sharing by setting
+//    visibility == "public"; only the owner can flip that flag.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Reject writes that try to change the owner or forge the timestamps.
+    function ownerFieldsIntact(uid) {
+      return request.resource.data.ownerId == uid
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    // ---- Public educational content (read-only for clients) ----
+
+    match /lessons/{lessonId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /challenges/{challengeId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ---- Per-user data ----
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid);
+      allow delete: if isOwner(uid);
+
+      // Lesson and challenge progress.
+      match /progress/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      // Saved simulation runs kept for run-to-run comparison.
+      match /simulationRuns/{runId} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // ---- Saved network topologies ----
+
+    match /networks/{networkId} {
+      allow get, list: if resource.data.visibility == 'public'
+        || isOwner(resource.data.ownerId);
+
+      allow create: if isSignedIn()
+        && ownerFieldsIntact(request.auth.uid)
+        && request.resource.data.visibility in ['private', 'public'];
+
+      allow update: if isOwner(resource.data.ownerId)
+        && ownerFieldsIntact(resource.data.ownerId)
+        && request.resource.data.visibility in ['private', 'public'];
+
+      allow delete: if isOwner(resource.data.ownerId);
+    }
+
+    // Anything not matched above is denied.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

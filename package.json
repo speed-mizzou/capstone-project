@@ -1,0 +1,18 @@
+{
+  "name": "capstone-project",
+  "private": true,
+  "version": "0.0.0",
+  "description": "SPEED quantum networking education platform",
+  "scripts": {
+    "dev": "npm --prefix apps/web run dev",
+    "build": "npm --prefix apps/web run build",
+    "lint": "npm --prefix apps/web run lint",
+    "install:web": "npm --prefix apps/web install",
+    "install:functions": "python3.13 -m venv functions/venv && functions/venv/bin/pip install -r functions/requirements.txt",
+    "emulators": "firebase emulators:start",
+    "deploy": "firebase deploy",
+    "deploy:hosting": "firebase deploy --only hosting",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes"
+  }
+}

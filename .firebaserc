@@ -1,0 +1,9 @@
+{
+  "projects": {
+    "default": "quantum-dev-f1343",
+    "prod": "quantum-ee536",
+    "dev": "quantum-dev-f1343"
+  },
+  "targets": {},
+  "etags": {}
+}
